@@ -1,5 +1,7 @@
-
-
+/* Author:  Zach Mitchell, mitcheza@oregonstate.edu
+   CS493, FALL 2018 - HW3 Ship/Slip RESTful API
+   10/18/2018
+*/
 
 //Necesseties for Node / Project
 const express = require('express');
@@ -279,7 +281,7 @@ router.post('/ships', function(req, res){
             } else {
               //All properties initialized, add to datastore
                post_ship(req.body.name, req.body.type, req.body.length)
-               .then( key => {res.status(201).send('"id": ' + '"' + key.id + '"')} );
+               .then( key => {res.status(201).send('{ "id": ' + '"' + key.id + '" }')} );
             }
 });
 
