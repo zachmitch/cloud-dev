@@ -65,13 +65,13 @@ async function addSelfLink(req, item){
 }
 
 //Unload All Cargo (for delete ship)
-async function unloadAllCargo(ship){
-  console.log(ship);
-  let cargoSz = ship.cargo.length;
+async function unloadAllCargo(cargo){
+  console.log(cargo);
+  let cargoSz = cargo.length;
   console.log("**************CARGO SZ TO UNLOAD: " + cargoSz+ " *************************");
   for(var i = 0; i < cargoSz; i++){
-    console.log("UNLOADING CARGO ********************** " + ship.cargo[i].id);
-    return await get_single_cargo(ship.cargo[i].id).then((cargoUnit)=>{
+    console.log("UNLOADING CARGO ********************** " + cargo[i].id);
+    return await get_single_cargo(cargo[i].id).then((cargoUnit)=>{
       console.log("UNLOADING CARGO: ********************** " + i);
        put_cargo(cargoUnit.id, cargoUnit.weight, "", cargoUnit.content, cargoUnit.delivery_date);
     });
@@ -99,6 +99,19 @@ async function unloadSingleCargo(ship, cargoRemoved){
   }
 }
 
+//Function used below that adds ship name/self dynamically
+async function readyOutput (req, input) {
+  console.log(input);
+  let inputLen = input.items.length;
+  console.log(inputLen);
+  if(inputLen > 0){
+    for(var i = 0; i < inputLen; i++){
+      await addSelfLink(req, input.items[i]);
+    }
+  }
+  return input;
+};
+
 /*--------End Helper functions ---------------------*/
 
 
@@ -109,28 +122,34 @@ function get_ships(req){
         var q = datastore.createQuery(SHIP).order('name').limit(3);
         var results = {}; //returned to user
         if(Object.keys(req.query).includes("cursor")){ //If there is a cursor
-          q = q.start(req.query.cursor); //Set start of retrieval at cursor
+          q.startVal = (req.query.cursor).replace(/ /g, "+"); //Set start of retrieval at cursor in URI format
         }
+        console.log("QUERY");
+        console.log(q);
         return datastore.runQuery(q).then( entities => {
           results.items = entities[0];
+          console.log("CURSOR");
+          console.log(entities[1]);
           if(entities[1].moreResults !== Datastore.NO_MORE_RESULTS){
-            results.next = req.protocol + "://" + req.get("host") + "/ships?cursor=" + entities[1].endCursor;
+            results.next = "https://" + req.get("host") + "/ships?cursor=" + entities[1].endCursor;
           } else {
             results.next = "END OF RESULTS";
           }
-
           return results;
+        }).catch( errr => {
+            console.log(errr);
+            return false;
         });
 }
 
 //Return a single ship
 function get_ship(id){
-
+        console.log("INSIDE GET_SHIP");
         const key = datastore.key([SHIP, parseInt(id,10)]);
         return datastore.get(key).then( result => {
             var ship = result[0];
             ship.id = id; //Add id property to ship
-            console.log("INSIDE GET SHIP");
+            console.log("EXITING GET_SHIP");
             return ship;
 
         }).catch( err => {
@@ -140,17 +159,25 @@ function get_ship(id){
 
 //Add a new ship
 function post_ship(name, type, length){
+        console.log("INSIDE POST_SHIP");
         var key = datastore.key(SHIP);
         const new_ship = { "name": name, "type": type, "length": length, "cargo":[]};
-        return datastore.save({"key":key, "data":new_ship}).then(() => {return key});
+        console.log("EXITING POST_SHIP");
+        return datastore.save({"key":key, "data":new_ship}).then(() =>
+        {return key}).catch( err => {
+            return false;
+        });
 }
 
 
 
 // Edit a ship
 function put_ship(id, name, type, length, cargo){
+        console.log("INSIDE PUT_SHIP");
         const key = datastore.key([SHIP, parseInt(id,10)]);
         const ship = {"name": name, "type": type, "length": length, "cargo": cargo};
+        console.log("returning: ");
+        console.log("datastore.save()");
         return datastore.save({"key":key, "data":ship})
         .catch( err => {
             return false;
@@ -159,11 +186,17 @@ function put_ship(id, name, type, length, cargo){
 
 //Remove ship from datastore
 function delete_ship(id){
+        console.log("INSIDE DELETE_SHIP");
         const key = datastore.key([SHIP, parseInt(id,10)]);
         return datastore.get(key).then( result => {
 
           //Delete the ship
-          return datastore.delete(key);
+          return datastore.delete(key).then(()=>{
+            console.log("EXITING DELETE SHIP");
+            return true;
+          });
+        }).catch( err => {
+            return false;
         });
 }
 
@@ -176,17 +209,23 @@ function get_all_cargo(req){
         var q = datastore.createQuery(CARGO).limit(3);
         var results = {}; //returned to user
         if(Object.keys(req.query).includes("cursor")){ //If there is a cursor
-          q = q.start(req.query.cursor); //Set start of retrieval at cursor
+          q.startVal = (req.query.cursor).replace(/ /g, "+"); //Set start of retrieval at cursor in URI format
         }
+        console.log("QUERY");
+        console.log(q);
         return datastore.runQuery(q).then( entities => {
           results.items = entities[0];
+          console.log("CURSOR");
+          console.log(entities[1]);
           if(entities[1].moreResults !== Datastore.NO_MORE_RESULTS){
-            results.next = req.protocol + "://" + req.get("host") + "/cargo?cursor=" + entities[1].endCursor;
+            results.next = "https://" + req.get("host") + "/cargo?cursor=" + entities[1].endCursor;
           } else {
             results.next = "END OF RESULTS";
           }
 
           return results;
+        }).catch( err => {
+            return false;
         });
 }
 
@@ -210,13 +249,18 @@ function post_cargo(weight, content, delivery_date){
         var key = datastore.key(CARGO);
         const new_cargo = { "weight": weight, "carrier": '', "content": content,
             "delivery_date": delivery_date};
-        return datastore.save({"key":key, "data":new_cargo}).then(() => {return key});
+        return datastore.save({"key":key, "data":new_cargo}).then(() =>
+         {return key}).catch( err => {
+             return false;
+         });
 }
 
 // Edit cargo
 function put_cargo(id, weight, carrier, content, delivery_date){
+        console.log("INSIDE PUT_CARGO");
         const key = datastore.key([CARGO, parseInt(id,10)]);
         const ship = {"weight": weight, "carrier": carrier, "content": content, "delivery_date": delivery_date};
+        console.log("EXITING PUT_CARGO");
         return datastore.save({"key":key, "data":ship})
         .catch( err => {
             return false;
@@ -225,11 +269,16 @@ function put_cargo(id, weight, carrier, content, delivery_date){
 
 //Remove cargo from datastore
 function delete_cargo(id){
+      console.log("INSIDE DELETE_CARGO");
+
         const key = datastore.key([CARGO, parseInt(id,10)]);
         return datastore.get(key).then( result => {
+          console.log("EXITING DELETE_CARGO");
 
           //Delete the cargo
           return datastore.delete(key);
+        }).catch( err => {
+            return false;
         });
 }
 
@@ -244,13 +293,21 @@ function delete_cargo(id){
 /* ------------- Begin Ship Controller Functions ------------- */
 //Get all ships
 router.get('/ships', function(req, res){
-            const ships = get_ships(req)
+
+            return get_ships(req)  // Get all ships
             .then( (ships) => {
-              //Add id and selfLink dynamically for output
-              ships.items.map(fromDatastore).map( x => {
-                  return addSelfLink(req, x);
-              });
-                res.status(200).json(ships);
+              console.log("before adding ids");
+              console.log(ships);
+              ships.items.map(fromDatastore); // Add id's
+              return ships;
+            }).then( ships => {
+              console.log("before adding selfLinks");
+              console.log(ships);
+              return readyOutput(req, ships); // Add ships' names/selfs
+            }).then(final=>{
+              console.log("AFTER selfLinks");
+              console.log(final);
+              res.status(200).json(final); //Return the goodies
             });
 });
 
@@ -262,8 +319,10 @@ router.get('/ships/:id', function(req, res){
               //Send error if not found
                 if(ship){
                   req.route.path = "/ships"; //Make sure path is set for addSelfLink()
-                  addSelfLink(req, ship); //Add selfLink dynamically for output
-                  res.status(200).json(ship);
+                  addSelfLink(req, ship).then(()=>{//Add selfLink dynamically for output
+                    res.status(200).json(ship);
+                  });
+
                 } else {
                   res.status(404).end();
                 }
@@ -279,7 +338,7 @@ router.post('/ships', function(req, res){
               res.status(400).send("ERROR.  Confirm all parameters are initialized correctly.").end()
             } else {
               //All properties initialized, add to datastore
-               post_ship(req.body.name, req.body.type, req.body.length)
+               return post_ship(req.body.name, req.body.type, req.body.length)
                .then( key => {res.status(201).send('{ "id": ' + '"' + key.id + '" }')} );
             }
 });
@@ -289,8 +348,7 @@ router.put('/ships/:id', function(req, res){
             //If user didn't fill out all properties
             if(typeof (req.body.name) != 'string' ||
                typeof (req.body.type) != 'string' ||
-               typeof (req.body.length) != 'number' ||
-               typeof (req.body.cargo) != 'object'){
+               typeof (req.body.length) != 'number'){
               res.status(400).send("ERROR.  Confirm all parameters are initialized correctly.").end();
               return;
             } else {
@@ -298,43 +356,16 @@ router.put('/ships/:id', function(req, res){
               // See if ship exists in datastore to edit
               return get_ship(req.params.id).then( shipExists =>{
                 if(shipExists){
-                  //Make sure that cargo we are editing also exists in the Datastore
-                  // before making any changes
-                  var cargoSz = (req.body.cargo).length;
-                  var cargoExists = true;
-
-                  //Define function that checks to see
-                  //   if each passed cargoID exists within our datastore
-                  async function isCargoAllThere () {
-                    for(var i = 0; i < cargoSz; i++){ //Cycle through and confirm that ID exists for
-                      console.log("Cargo[" + i + "]: " + req.body.cargo[i].id);
-                        await get_single_cargo(req.body.cargo[i].id).then( cargo => {// all cargo in the edit
-                          if(!cargo){
-                            cargoExists = false;
-                          }
-                        });
-                      }
-                    };
-
-                  //Call checking function, edit datastore, return result
-                  isCargoAllThere().then( () => {
-                      if(cargoExists){
-                        //Edit ship, then send success message
-                        put_ship(req.params.id, req.body.name, req.body.type, req.body.length, req.body.cargo)
-                        .then(res.status(200).end());
-                      } else {
-                        //Or let user know they can't add that non-existent cargo
-                        res.status(404).end();
-                      }
-                  });
-
+                  //Edit ship, then send success message
+                  put_ship(req.params.id, req.body.name, req.body.type, req.body.length, shipExists.cargo)
+                  .then(res.status(200).end());
 
                 } else {
                   //Ship doesn't exist
                   res.status(404).end();
                 }
               });
-            }
+           }
 });
 
 //Delete a ship
@@ -344,14 +375,20 @@ router.delete('/ships/:id', function(req, res){
             return get_ship(req.params.id).then( shipExists => {
               //if so clear cargo, perform delete, else send back not found
               if(shipExists){
-                console.log("**************SHIP EXISTS*************************");
+                console.log("**************UNLOADING CARGO*************************");
                 //Clear ship of cargo
-                return unloadAllCargo(shipExists).then(()=>{
-                  console.log("**************CARGO UNLOADED ABOUT TO DELETE*************************");
-                    delete_ship(req.params.id).then(res.status(204).end());
-                });
+                var cargoLoad = shipExists.cargo;
+
+                  console.log("**************ABOUT TO DELETE SHIP: "+ req.params.id + " ********************");
+                  delete_ship(req.params.id).then(()=>{
+                    console.log("SENDING 204, SUCCESSFUL DELETE");
+                    unloadAllCargo(cargoLoad).then(()=>{
+                      res.status(204).end();
+                    });
+                  });
+
               } else {
-                res.status(404).end();
+                res.status(404).end();  //Ship not found
               }
           });
 });
@@ -363,19 +400,6 @@ router.delete('/ships/:id', function(req, res){
 //Get all cargo
 router.get('/cargo', function(req, res){
 
-        //Function used below that adds ship name/self dynamically to carriers
-        async function readyOutput (input) {
-          console.log(input);
-          let inputLen = input.items.length;
-          console.log(inputLen);
-          if(inputLen > 0){
-            for(var i = 0; i < inputLen; i++){
-              await addSelfLink(req, input.items[i]);
-            }
-          }
-          return input;
-        };
-
             return get_all_cargo(req)  // Get all ships
             .then( (cargo) => {
               console.log("before adding ids");
@@ -385,7 +409,7 @@ router.get('/cargo', function(req, res){
             }).then( cargo => {
               console.log("before adding selfLinks");
               console.log(cargo);
-              return readyOutput(cargo); // Add ships' names/selfs
+              return readyOutput(req, cargo); // Add ships' names/selfs
             }).then(final=>{
               console.log("AFTER selfLinks");
               console.log(final);
@@ -430,46 +454,18 @@ router.put('/cargo/:id', function(req, res){
     return get_single_cargo(req.params.id).then( cargoExists =>{
 
         if(cargoExists){
-
             //Confirm user passed number in correct form
             if(typeof (req.body.weight) != 'number' ||
                typeof (req.body.content) != 'string' ||
-               typeof (req.body.delivery_date) != 'string' && (
-               typeof (req.body.carrier) != 'undefined' ||
-               typeof (req.body.carrier) != 'object'
-               )){
+               typeof (req.body.delivery_date) != 'string'){
               res.status(400).send("ERROR.  Confirm all parameters are initialized correctly.").end();
               return;
             }
             console.log("CARGO EXISTS");
-            console.log(typeof(req.body.carrier));
 
-            //See if carrier exists, before adding as carrier
-            if(typeof(req.body.carrier) == 'object'){
-              console.log("HAS SHIP");
-              var carrierID = req.body.carrier.id;
-              console.log("carrierID: " + carrierID);
-              //Update the cargo, or return 404 for non-existent ship
-              return get_ship(carrierID).then( shipExists => {
-
-                  if(shipExists){ //If ship exists, edit cargo appropriately
-                      console.log("SHIP EXISTS");
-                    put_cargo(req.params.id, req.body.weight, req.body.carrier,
-                        req.body.content, req.body.delivery_date);
-                    res.status(200).end();
-                  } else { //Otherwise send 404 for non-existent ship
-                    console.log("SHIP doesn't EXISTS");
-
-                    res.status(404).end();
-                  }
-              });
-
-            } else if (typeof(req.body.carrier) === 'undefined') { //No ship associated
-              console.log("NO SHIP");
-              put_cargo(req.params.id, req.body.weight, "",
-                  req.body.content, req.body.delivery_date);
-              res.status(200).end();
-            }
+              //Supply edit
+              put_cargo(req.params.id, req.body.weight, cargoExists.carrier,
+                  req.body.content, req.body.delivery_date).then(res.status(200).end());
 
           } else { // Cargo doesn't exist
             res.status(404).end();
@@ -492,7 +488,10 @@ router.delete('/cargo/:id', function(req, res){
                 return get_ship(exists.carrier.id).then((ship)=>{
                   return unloadSingleCargo(ship, cargo);
                 }).then((nada)=>{
-                   delete_cargo(req.params.id).then(res.status(204).end());
+                   return delete_cargo(req.params.id);
+                }).then((nada)=>{
+                  console.log("SENDING 204 SUCCESS");
+                  res.status(204).end();
                 });
               } else { // Cargo was not on a ship
                 delete_cargo(req.params.id).then(res.status(204).end());
@@ -507,7 +506,7 @@ router.delete('/cargo/:id', function(req, res){
 router.put('/ships/:ship_id/cargo/:cargo_id', function(req, res){
 
       var ship; //Holds ship info, if it exists
-
+      console.log("ENTERING LOAD SHIP ");
       //Confirm that both ship/cargo exist
       return get_ship(req.params.ship_id).then( shipExists =>{
           //Ship returns ship object if it exists, false if not
@@ -528,18 +527,21 @@ router.put('/ships/:ship_id/cargo/:cargo_id', function(req, res){
                         //Add carrier to cargo
                           return put_cargo(cargoExists.id, cargoExists.weight, addedShip,
                             cargoExists.content, cargoExists.delivery_date).then( nothing =>{
-                         //Add cargo to carrier
-                         var addedCargo = {};
-                         addedCargo.id = cargoExists.id;
-                         ship.cargo.push(addedCargo);
-                         console.log("addedCargo");
-                         console.log(addedCargo);
-                         console.log("ship.cargo");
-                         console.log(addedCargo);
-                         //Edit ship
-                         return put_ship(ship.id, ship.name, ship.type, ship.length, ship.cargo);
+                             //Add cargo to carrier
+                             var addedCargo = {};
+                             addedCargo.id = cargoExists.id;
+                             ship.cargo.push(addedCargo);
+                             console.log("addedCargo");
+                             console.log(addedCargo);
+                             console.log("ship.cargo");
+                             console.log(addedCargo);
+                             //Edit ship
+                             return put_ship(ship.id, ship.name, ship.type, ship.length, ship.cargo);
 
-                       }).then(res.status(200).end()); //Send success
+                       }).then(()=>{
+
+                          console.log("SENDING LOADED SUCCESS 200")
+                         res.status(200).end()}); //Send success
 
                   } else { // Cargo already on a ship, forbidden
                     res.status(403).end();
@@ -564,7 +566,7 @@ router.put('/ships/:ship_id/cargo/:cargo_id', function(req, res){
 router.delete('/ships/:ship_id/cargo/:cargo_id', function(req, res){
     //Confirm that both ship/cargo exist
     var ship; //Holds ship info, if it exists
-
+    console.log("ENTERING UNLOAD SHIP");
     //Confirm that both ship/cargo exist
     return get_ship(req.params.ship_id).then( shipExists =>{
         //Ship returns ship object if it exists, false if not
@@ -577,16 +579,17 @@ router.delete('/ships/:ship_id/cargo/:cargo_id', function(req, res){
               //Returns cargo object if exists
               if(cargoExists){ // Here we know both ship/cargo exist
 
-                unloadSingleCargo(ship, cargoExists).then(res.status(200).end());
+                return unloadSingleCargo(ship, cargoExists).then(()=>{
+                  console.log("RETURNING UNLOAD SHIP SUCCESS200");
+                  res.status(200).end();
+                });
 
               } else { // Cargo doesn't exist
                 res.status(404).end();
-                return;
               }
           }); // return get_single_cargo
         } else { // Ship doesn't exist
           res.status(404).end();
-          return;
         }
     }); // return get_ship
 
