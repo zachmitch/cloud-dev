@@ -1,0 +1,720 @@
+{
+	"info": {
+		"_postman_id": "dac5f5b5-a928-460e-99ee-88ce8094e005",
+		"name": "HW5 Tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "New Ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "afc9e6a5-8e6f-461a-885c-aedf8a143394",
+						"exec": [
+							"//Overview of Pre-post tests for get New Ship",
+							"//  GET URL/ships, grab count, add a ship, GET URL/ships and confirm count+=1",
+							"//  Get /ships/:new_ship_id and verify that info sent == info on server",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json();",
+							"        console.log(\"jsonData\");",
+							"        console.log(jsonData);",
+							"        pm.variables.set(\"get_ships_before\", jsonData.length);  // == array size of json",
+							"        var bef = pm.variables.get(\"get_ships_before\");",
+							"        console.log(\"pre-before\");",
+							"        console.log(bef);",
+							"        ",
+							"        var sent = { \"name\": \"Sea Witch\",",
+							"              \"type\": \"Cat\",",
+							"              \"length\": 13",
+							"            };",
+							"                    ",
+							"        pm.globals.set(\"new_ship_sent\", sent);",
+							"    }",
+							"});",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "430684e7-7d5e-4bf8-9860-c663fc521724",
+						"exec": [
+							"//Test to see that new GET /ships +=1 count after adding a ship",
+							"// Test that data sent == data on server",
+							"var jsonData;",
+							"var last_ship;",
+							"",
+							"//Confirm 201 Response",
+							"pm.test(\"POST /ships - 201 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(201); ",
+							"    });",
+							"",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"             pm.test(\"POST /ships - Adds 1 ship to ships datastore\", function () {",
+							"            jsonData = res.json();",
+							"            console.log(\"jsonData\");",
+							"            console.log(jsonData);",
+							"            var jsonLen = jsonData.length;",
+							"            var bef = pm.variables.get(\"get_ships_before\");",
+							"            console.log(\"bef \" + bef);",
+							"            console.log(\"after \" + jsonLen)",
+							"            pm.expect(jsonLen).to.eql(bef + 1);",
+							"            ",
+							"            //Last ship ",
+							"            last_ship = jsonData[jsonData.length-1];",
+							"            ",
+							"            //Confirm that last ship matches ships sent",
+							"            var sent = pm.globals.get(\"new_ship_sent\");",
+							"            var match = true;",
+							"            ",
+							"            for(var prop in sent){",
+							"                if(sent.prop != last_ship.prop)",
+							"                    match = false;",
+							"            }",
+							"            ",
+							"            pm.test(\"POST /ships - Ship sent == ship on server\", function () {",
+							"                pm.expect(match).to.eql(true);",
+							"            });",
+							"            ",
+							"            console.log(\"lastship\");",
+							"            console.log(last_ship);",
+							"            ",
+							"            //New ship id for later use in future test",
+							"             pm.globals.set(\"new_ship_id\", last_ship.id);",
+							"             var globCheck = pm.globals.get(\"new_ship_id\");",
+							"             console.log('globCheck');",
+							"             console.log(globCheck);",
+							"            ",
+							"        });",
+							"    }",
+							"})",
+							"    ",
+							"// Add ship incorrectly to confirm we get 400 error",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships',",
+							"    method: 'POST',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"ggg\",",
+							"        \t\"type\": \"Sank\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"          pm.test(\"POST /ships - Bad request for incomplete body (400)\", function () { ",
+							"                    pm.expect(res.code).to.equal(400); ",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \"name\": \"Sea Witch\",\n  \"type\": \"Cat\",\n  \"length\": 13\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all ships",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "43724395-be1f-426f-89c6-8da37708b99b",
+						"exec": [
+							"//Confirm 200 Response",
+							"pm.test(\"GET /ships - 200 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(200); ",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Single Ship - JSON",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Single Ship - HTML",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "text/html"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Single Ship - ERRORS",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6f559146-23cb-4adf-8422-d750910a9ac8",
+						"exec": [
+							"//Confirm 406 error for bad accept type",
+							"  pm.test(\"GET /ships/:ship_id - Incorrect ACCEPT type (406)\", function () { ",
+							"            pm.expect(pm.response.code).to.equal(406); ",
+							"    });",
+							"",
+							"",
+							"// Attempt to retrieve ship that doesn't exist",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships/asdfk',",
+							"    method: 'GET'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for ship not found",
+							"          pm.test(\"GET /ships/:ship_id - Can't get ship that doesn't exist (404)\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); ",
+							"                });",
+							"",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "1791300c-7ecf-4ec6-9b99-9ec7bb051faa",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/rdf+xml"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit Ship",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d3cfd635-e145-4866-aca2-0db99975287e",
+						"exec": [
+							"//Confirm 303 Response",
+							"pm.test(\"PUT /ships/:ship_id - 303 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(303);  ",
+							"    });",
+							"    ",
+							"    var loc = postman.getResponseHeader(\"Location\");",
+							"    console.log(loc);",
+							"    ",
+							"//Check that 303 response location is valid and edit took   ",
+							"pm.sendRequest({",
+							"    url: loc,",
+							"    method: 'GET'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 303 works",
+							"          pm.test(\"PUT /ships/:ship_id - 303 link works\", function () { ",
+							"                    pm.expect(res.code).to.equal(200);",
+							"           });",
+							"                ",
+							"        //See if edit sent matches what is there",
+							"        var sent = pm.variables.get(\"editSent\");",
+							"        var onServer = res.json();",
+							"        var match = true;",
+							"        for(var prop in sent){",
+							"            if(sent[prop]!=onServer[prop])",
+							"                match = false;",
+							"        }",
+							"        ",
+							"         //Confirm edit worked",
+							"          pm.test(\"PUT /ships/:ship_id - 303 Edit matches sent\", function () { ",
+							"                    pm.expect(match).to.equal(true);",
+							"           });",
+							"    }",
+							"});",
+							"",
+							"    ",
+							"// Edit ship incorrectly incomplete body",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships/' + shipID,",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"ggg\",",
+							"        \t\"type\": \"Sank\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"          pm.test(\"PUT /ships/:ship_id - Bad request for incomplete body (400)\", function () { ",
+							"                    pm.expect(res.code).to.equal(400); ",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships/asdf',",
+							"    method: 'PUT',",
+							"        header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"ggg\",",
+							"        \t\"type\": \"Sank\",",
+							"        \t\"length\": 234",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"          pm.test(\"PUT /ships/:ship_id - Can't edit ship that doesn't exist (404)\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); ",
+							"                });",
+							"",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "1cf4b628-3c49-4409-9fc7-1bf20f202bad",
+						"exec": [
+							"var editSent = { \"name\": \"Sea Quidditch\",",
+							"  \"type\": \"Cat\",",
+							"  \"length\": 13",
+							"};",
+							"",
+							"pm.variables.set(\"editSent\", editSent);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \"name\": \"Sea Quidditch\",\n  \"type\": \"Cat\",\n  \"length\": 13\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "915d06ea-0ba0-4e6f-bfe1-dbdc1250bcf7",
+						"exec": [
+							"//Overview of Pre-post tests for get Delete Ship",
+							"//  GET URL/ships, grab count, delete a ship, GET URL/ships and confirm count-=1",
+							"//  Confirm error and response codes",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json();",
+							"        console.log(\"jsonData\");",
+							"        console.log(jsonData);",
+							"        pm.variables.set(\"get_ships_del\", jsonData.length);  // == array size of json",
+							"        var bef = pm.variables.get(\"get_ships_del\");",
+							"        console.log(\"before delete\");",
+							"        console.log(bef);",
+							"",
+							"    }",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "4f7ec99e-eb92-422c-a3bb-0dc8a32da56f",
+						"exec": [
+							"var jsonData;",
+							"var last_ship;",
+							"",
+							"//Confirm 204 Response",
+							"pm.test(\"DELETE /ships - 204 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(204); //Check that cursor request was valid request",
+							"    });",
+							"",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"             pm.test(\"DELETE /ships - Subtracts 1 ship from datastore\", function () {",
+							"            jsonData = res.json();",
+							"            console.log(\"jsonData\");",
+							"            console.log(jsonData);",
+							"            var jsonLen = jsonData.length;",
+							"            var bef = pm.variables.get(\"get_ships_del\");",
+							"            console.log(\"bef \" + bef);",
+							"            console.log(\"after \" + jsonLen)",
+							"            pm.expect(jsonLen).to.eql(bef - 1);",
+							"            ",
+							"           ",
+							"            ",
+							"        });",
+							"    }",
+							"})",
+							"",
+							"// Try to delete ship that doesn't exists (404)",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-3.appspot.com/ships/xkcd',",
+							"    method: 'DELETE'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"          pm.test(\"DELETE /ships - Can't delete non-existent ship (404)\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							"    ",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit ALL - 405",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bf2cbbf1-3f37-4f74-adcc-b15abf964dbf",
+						"exec": [
+							"//Confirm 405 Response",
+							"pm.test(\"PUT /ships - 405 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(405); //Check that cursor request was valid request",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete ALL - 405",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4ad51795-4b7a-4088-83e2-7c7e60e591fe",
+						"exec": [
+							"//Confirm 405 Response",
+							"pm.test(\"DELETE /ships - 405 RESPONSE\", function () { ",
+							"        pm.expect(pm.response.code).to.equal(405); //Check that cursor request was valid request",
+							"    });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-3.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-3",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "95e65c2d-3dfa-4187-85ab-7cd5ef41759c",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "2ce6d811-b373-4605-97c6-954c7fc5931c",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
