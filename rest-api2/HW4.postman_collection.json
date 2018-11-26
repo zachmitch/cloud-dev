@@ -1,0 +1,1864 @@
+{
+	"info": {
+		"_postman_id": "ac8ff72e-ff7e-4e23-8a9e-07056885d628",
+		"name": "HW4 - FINAL",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "New Ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ff221946-b0ba-4fa6-aed2-6d53de2f046c",
+						"exec": [
+							"//Overview of Pre-post tests for get New Ship",
+							"//  GET URL/ships, grab count, add a ship, GET URL/ships and confirm count+=1",
+							"//  Get /ships/:new_ship_id and verify that info sent == info on server",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json();",
+							"        console.log(\"jsonData\");",
+							"        console.log(jsonData);",
+							"        pm.variables.set(\"get_ships_before\", jsonData.items.length);  // == array size of json",
+							"        var bef = pm.variables.get(\"get_ships_before\");",
+							"        console.log(\"bef\");",
+							"        console.log(bef);",
+							"        ",
+							"        var sent = {",
+							"        \t\"name\": \"sample ship\",",
+							"        \t\"length\": 23,",
+							"        \t\"type\": \"xsdfg\"",
+							"        };",
+							"        ",
+							"        pm.globals.set(\"new_ship_sent\", sent);",
+							"    }",
+							"});",
+							"",
+							"// Add ship incorrectly to confirm we get 400 error",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships',",
+							"    method: 'POST',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"ggg\",",
+							"        \t\"type\": \"Sank\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"        ",
+							"          pm.test(\"POST /ships - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(400); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "94808244-fa76-4fcc-b1ff-0f75fd80868b",
+						"exec": [
+							"//Test to see that new GET /ships +=1 count after adding a ship",
+							"",
+							"var jsonData;",
+							"var last_ship;",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"             pm.test(\"POST /ships - Adds 1 ship to ships datastore\", function () {",
+							"            jsonData = res.json().items;",
+							"            console.log(\"jsonData\");",
+							"            console.log(jsonData);",
+							"            var jsonLen = jsonData.length;",
+							"            var bef = pm.variables.get(\"get_ships_before\");",
+							"            console.log(\"jsonLen \" + jsonLen)",
+							"            console.log(\"bef \" + bef);",
+							"            pm.expect(jsonLen).to.eql(bef + 1);",
+							"            ",
+							"            //Last ship ",
+							"            last_ship = jsonData[jsonData.length-1];",
+							"            ",
+							"            //Confirm that last ship matches ships sent",
+							"            var sent = pm.globals.get(\"new_ship_sent\");",
+							"            var match = true;",
+							"            ",
+							"            for(var prop in sent){",
+							"                if(sent.prop != last_ship.prop)",
+							"                    match = false;",
+							"            }",
+							"            ",
+							"            pm.test(\"POST /ships - Ship sent == ship on server\", function () {",
+							"                pm.expect(match).to.eql(true);",
+							"            });",
+							"            ",
+							"            console.log(\"lastship\");",
+							"            console.log(last_ship);",
+							"            ",
+							"            //New ship id for later use in future test",
+							"             pm.globals.set(\"new_ship_id\", last_ship.id);",
+							"             var globCheck = pm.globals.get(\"new_ship_id\");",
+							"             console.log('globCheck');",
+							"             console.log(globCheck);",
+							"            ",
+							"        });",
+							"    }",
+							"})",
+							"    ",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"sample ship\",\n\t\"length\": 23,\n\t\"type\": \"xsdfg\"\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Cargo",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ff221946-b0ba-4fa6-aed2-6d53de2f046c",
+						"exec": [
+							"//Overview of Pre-post tests for get New Cargo",
+							"//  GET URL/cargo, grab count, add a single cargo, GET URL/cargo and confirm count+=1",
+							"//  Get /cargo/:new_cargo_id and verify that info sent == info on server",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json().items;",
+							"        console.log(\"jsonData\");",
+							"        console.log(jsonData);",
+							"        pm.variables.set(\"get_cargo_before\", jsonData.length);  // == array size of json",
+							"        var bef = pm.variables.get(\"get_cargo_before\");",
+							"        console.log(\"bef\");",
+							"        console.log(bef);",
+							"        ",
+							"        var sent = {",
+							"        \t\"weight\": 645,",
+							"        \t\"content\": \"USPS Media Mail\",",
+							"        \t\"delivery_date\": \"06/30/2063\"",
+							"        };",
+							"        ",
+							"        pm.globals.set(\"new_cargo_sent\", sent);",
+							"    }",
+							"});",
+							"",
+							"// Add cargo incorrectly to confirm we get 400 error",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo',",
+							"    method: 'POST',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"delivery_date\": 5",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 400 error for bad request",
+							"        ",
+							"          pm.test(\"POST /cargo - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(400); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "94808244-fa76-4fcc-b1ff-0f75fd80868b",
+						"exec": [
+							"//Test to see that new GET /cargo +=1 count after adding a cargo",
+							"",
+							"var jsonData;",
+							"var last_cargo;",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"             pm.test(\"POST /cargo - Adds 1 cargo to cargo datastore\", function () {",
+							"            jsonData = res.json().items;",
+							"            console.log(\"jsonData\");",
+							"            console.log(jsonData);",
+							"            var jsonLen = jsonData.length;",
+							"            var bef = pm.variables.get(\"get_cargo_before\");",
+							"            console.log(\"jsonLen \" + jsonLen)",
+							"            console.log(\"bef \" + bef);",
+							"            pm.expect(jsonLen).to.eql(bef + 1);",
+							"            ",
+							"            //Last cargo ",
+							"            last_cargo = jsonData[jsonData.length-1];",
+							"            ",
+							"            //Confirm that last cargo matches cargo sent",
+							"            var sent = pm.globals.get(\"new_cargo_sent\");",
+							"            var match = true;",
+							"            ",
+							"            for(var prop in sent){",
+							"                if(sent.prop != last_cargo.prop)",
+							"                    match = false;",
+							"            }",
+							"            ",
+							"            pm.test(\"POST /cargo - Cargo sent == cargo on server\", function () {",
+							"                pm.expect(match).to.eql(true);",
+							"            });",
+							"            ",
+							"            ",
+							"            //New cargo id for later use in future test",
+							"             pm.globals.set(\"new_cargo_id\", last_cargo.id);",
+							"             var globCheck = pm.globals.get(\"new_cargo_id\");",
+							"             console.log('globCheck');",
+							"             console.log(globCheck);",
+							"            ",
+							"        });",
+							"    }",
+							"})",
+							"    ",
+							"",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"weight\": 645,\n\t\"content\": \"USPS Media Mail\",\n\t\"delivery_date\": \"06/30/2063\"\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Ships",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "05674fd1-b871-4a8c-af30-f12d9e0fe2b4",
+						"exec": [
+							"//Overview of Pre-post tests for get Get ALL ships",
+							"//  Confirm self-link exists",
+							"//  Confirm self-link works",
+							"//  ADD one new ship",
+							"//  GET URL/ships/, confirm that datastore w/4 entities, next == \"http://URL/ships?cursor...\"",
+							"//  Get \"http://URL/ships?cursor...\", to make sure pagination works",
+							"",
+							"var selfLink;  //Self link of entity",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json();",
+							"        ",
+							"        pm.test(\"GET /ships - Self link added to item\", function () { ",
+							"            selfLink = jsonData.items[0].self;",
+							"            pm.expect(selfLink).to.equal(\"https://mitcheza-api-2.appspot.com/ships/\"+jsonData.items[0].id); ",
+							"        });",
+							"        ",
+							"        ",
+							"        //Check selfLink works",
+							"        pm.sendRequest({",
+							"            url: selfLink,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"                pm.test(\"GET /ships - Self link works\", function () { ",
+							"                    pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"                });",
+							"            }",
+							"        });",
+							"        ",
+							"        ",
+							"    }",
+							"    ",
+							"});",
+							"",
+							"// Add a ship, so now there will be 4 items in the datastore",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships',",
+							"    method: 'POST',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"ggg\",",
+							"        \t\"length\": 100,",
+							"        \t\"type\": \"Sank\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Save this item so we can delete later on",
+							"        ",
+							"        pm.globals.set(\"second_ship_id\",res.json().id);",
+							"",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "5ebb7903-9ccb-4900-b643-fda0c168d3f0",
+						"exec": [
+							"//  GET URL/ships/, confirm that datastore w/4 entities, next == \"http://URL/ships?cursor...\"",
+							"",
+							"var jsonData = pm.response.json().next;",
+							"var containsCursor = jsonData.includes(\"?cursor=\"); //Does the response contain a cursor?",
+							"",
+							" pm.test(\"GET /ships - Pagination, 4 (or more) items in datastore, res.next == 'https://URL/ships?cursor...'\", function () { ",
+							"            pm.expect(containsCursor).to.equal(true); ",
+							"});",
+							"",
+							"//Check to see that \"next\" cursor works",
+							"pm.test(\"GET /ships - Pagination, next cursor 'https://URL/ships?cursor...' works\", function () { ",
+							"            ",
+							"    pm.sendRequest({",
+							"            url: jsonData,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"                pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"        }",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Cargo",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "05674fd1-b871-4a8c-af30-f12d9e0fe2b4",
+						"exec": [
+							"//Overview of Pre-post tests for get Get ALL cargo",
+							"//  Confirm self-link exists",
+							"//  Confirm self-link works",
+							"//  ADD one new cargo",
+							"//  GET URL/cargo/, confirm that datastore w/4 entities, next == \"http://URL/cargo?cursor...\"",
+							"//  Get \"http://URL/cargo?cursor...\", to make sure pagination works",
+							"",
+							"var selfLink;",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo',",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        var jsonData = res.json();",
+							"        ",
+							"         pm.test(\"GET /cargo - Self link added to item\", function () { ",
+							"             console.log(\"jsonData.items[0]\");",
+							"             console.log(jsonData.items[0]);",
+							"            selfLink = jsonData.items[0].self;",
+							"            pm.expect(selfLink).to.equal(\"https://mitcheza-api-2.appspot.com/cargo/\"+jsonData.items[0].id); ",
+							"        });",
+							"        ",
+							"        ",
+							"        //Check selfLink works",
+							"        pm.sendRequest({",
+							"            url: selfLink,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"                pm.test(\"GET /cargo - Self link works\", function () { ",
+							"                    pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"                });",
+							"            }",
+							"        });",
+							"    }",
+							"});",
+							"",
+							"// Add a cargo unit, so now there will be 4 items in the datastore",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo',",
+							"    method: 'POST',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"weight\": 10,",
+							"        \t\"content\": \"Test material\",",
+							"        \t\"delivery_date\": \"09/09/2009\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Save this item so we can delete later on",
+							"        ",
+							"        pm.globals.set(\"second_cargo_id\",res.json().id);",
+							"",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "5ebb7903-9ccb-4900-b643-fda0c168d3f0",
+						"exec": [
+							"//  GET URL/cargo/, confirm that datastore w/4 entities, next == \"http://URL/cargo?cursor...\"",
+							"",
+							"var jsonData = pm.response.json().next;",
+							"var containsCursor = jsonData.includes(\"?cursor=\"); //Does the response contain a cursor?",
+							"",
+							" pm.test(\"GET /cargo - Pagination, 4 (or more) items in datastore, res.next == 'https://URL/cargo?cursor...'\", function () { ",
+							"            pm.expect(containsCursor).to.equal(true); ",
+							"});",
+							"",
+							"//Check to see that \"next\" cursor works",
+							"pm.test(\"GET /cargo - Pagination, next cursor 'https://URL/cargo?cursor...' works\", function () { ",
+							"            ",
+							"    pm.sendRequest({",
+							"            url: jsonData,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"                pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"        }",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get SINGLE ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "39c4a380-77d9-4479-a2d5-6e876f56ea59",
+						"exec": [
+							"// Get ship with non-existent ID to confirm 404 not found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/asdf',",
+							"    method: 'GET',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for ship not found",
+							"        ",
+							"          pm.test(\"GET /ships/:ship_id - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "e9fbb243-eadd-414e-9dc5-44287ae6d38f",
+						"exec": [
+							"//Overview of test for GET/ ships/:ship_id",
+							"// Confirm that new ship created in 'New Ship' test, matches request for single ship",
+							"// Confirm self-link",
+							"// Confirm self-link works",
+							"",
+							"var match = true;",
+							"var sent = pm.globals.get(\"new_ship_sent\");  //Ship created in 'new ship'",
+							"var response = pm.response.json();",
+							"",
+							"//Iterate over properties and see if there is a mismatch with response",
+							"for(var prop in sent){",
+							"    if(sent.prop != response.prop)",
+							"        match = false;",
+							"}",
+							"",
+							"//Info sent matches info on server",
+							"pm.test(\"GET /ships/:ship_id - Ship sent == ship on server\", function () {",
+							"    pm.expect(match).to.eql(true);",
+							"});",
+							"",
+							"//Self link exists",
+							"pm.test(\"GET /ships/:ship_id - Confirm selfLink exists\", function () {",
+							"    pm.expect(response.self).to.eql(\"https://mitcheza-api-2.appspot.com/ships/\" + response.id);",
+							"});",
+							"",
+							"//Check self link works",
+							"pm.sendRequest({",
+							"    url: response.self,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        pm.test(\"GET /ships:ship_id - Self link works\", function () { ",
+							"            pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"        });",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get SINGLE Cargo",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "2d3e0300-d503-4d4e-a9f6-fe7645859dfe",
+						"exec": [
+							"// Get cargo with non-existent ID to confirm 404 not found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/asdf',",
+							"    method: 'GET',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for cargo not found",
+							"        ",
+							"          pm.test(\"GET /cargo/:cargo_id - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "09fcfdc8-dd66-40ad-9e4e-765ad6458bae",
+						"exec": [
+							"//Overview of test for GET/ cargo/:cargo_id",
+							"// Confirm that new cargo created in 'New Cargo' test, matches request for single cargo",
+							"// Confirm self-link",
+							"// Confirm self-link works",
+							"",
+							"var match = true;",
+							"var sent = pm.globals.get(\"new_cargo_sent\");  //cargo created in 'new cargo'",
+							"var response = pm.response.json();",
+							"",
+							"//Iterate over properties and see if there is a mismatch with response",
+							"for(var prop in sent){",
+							"    if(sent.prop != response.prop)",
+							"        match = false;",
+							"}",
+							"",
+							"//Info sent matches info on server",
+							"pm.test(\"GET /cargo/:cargo_id - Cargo sent == Cargo on server\", function () {",
+							"    pm.expect(match).to.eql(true);",
+							"});",
+							"",
+							"//Self link exists",
+							"pm.test(\"GET /cargo/:cargo_id - Confirm selfLink exists\", function () {",
+							"    pm.expect(response.self).to.eql(\"https://mitcheza-api-2.appspot.com/cargo/\" + response.id);",
+							"});",
+							"",
+							"//Check self link works",
+							"pm.sendRequest({",
+							"    url: response.self,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        pm.test(\"GET /cargo:cargo_id - Self link works\", function () { ",
+							"            pm.expect(res.code).to.equal(200); //Check that cursor request was valid request",
+							"        });",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo/{{new_cargo_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo",
+						"{{new_cargo_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit a Ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "e6d3359e-70da-4733-975b-76bec27aa9ee",
+						"exec": [
+							"var editSent = {",
+							"\t\"name\": \"Usain Boat\",",
+							"\t\"type\": \"Racer\",",
+							"\t\"length\": 100",
+							"};",
+							"",
+							"pm.variables.set(\"editSent\", editSent);",
+							"",
+							"// EDIT ship with non-existent ID to confirm 404 not found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/asdf',",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"Usain Boat\",",
+							"        \t\"type\": \"Racer\",",
+							"        \t\"length\": 100",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for ship not found",
+							"        ",
+							"          pm.test(\"GET /ships/:ship_id - Non-existent ship 404\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"",
+							"// EDIT ship incorrectly for 400 error",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/' + shipID,",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \t\"name\": \"Usain Boat\",",
+							"        \t\"length\": 100",
+							"        })",
+							"    }",
+							"}, function (err, res2) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for ship not found",
+							"        ",
+							"          pm.test(\"GET /ships/:ship_id - Bad request\", function () { ",
+							"                    pm.expect(res2.code).to.equal(400); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "9f9aab3b-dd36-44ef-a1b6-87ab6b567b98",
+						"exec": [
+							"//Over view of PUT ships/:ship_id",
+							"// Save edit data, execute edit, GET /ships/:ship_id and compare to what was sent",
+							"",
+							"var editSent = pm.variables.get(\"editSent\");",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"",
+							"",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        ",
+							"        pm.test(\"PUT /ships:ship_id - Edit worked correctly\", function () { ",
+							"            var match = true;",
+							"            for (var prop in editSent){ //Iterate over properties in edit sent and confirm they all match",
+							"                if(editSent.prop != res.prop){",
+							"                    match = false;",
+							"                }",
+							"            }",
+							"            pm.expect(match).to.equal(true); ",
+							"        });",
+							"    }",
+							"});",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"Usain Boat\",\n\t\"type\": \"Racer\",\n\t\"length\": 100\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit Cargo",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "e6f0b9a3-6044-4d29-a147-ada10ac3f82c",
+						"exec": [
+							"var cargoEdit =  {",
+							"        \"weight\": 10,",
+							"        \"delivery_date\": \"08/08/2018\",",
+							"        \"carrier\": \"\",",
+							"        \"content\": \"Stuff\"",
+							"    };",
+							"    ",
+							"pm.variables.set(\"cargoEdit\", cargoEdit);",
+							"",
+							"// EDIT cargo with non-existent ID to confirm 404 not found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/asdf',",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"            \"weight\": 10,",
+							"            \"delivery_date\": \"08/08/2018\",",
+							"            \"content\": \"Stuff\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for cargo not found",
+							"        ",
+							"          pm.test(\"GET /cargo/:cargo_id - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});",
+							"",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"",
+							"// EDIT cargo incorrectly for 400 error",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/' + cargoID,",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json',",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"        \"delivery_date\": \"08/08/2018\",",
+							"        \"content\": \"Stuff\"",
+							"        })",
+							"    }",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 404 error for cargo not found",
+							"        ",
+							"          pm.test(\"PUT /Cargo/:cargo_id - Bad request\", function () { ",
+							"                    pm.expect(res.code).to.equal(400); //Check that cursor request was valid request",
+							"                });",
+							"",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "3d67efc4-b04c-45f7-8dc8-d6f39710ad7a",
+						"exec": [
+							"//Over view of PUT cargo/:cargo_id",
+							"// Save edit data, execute edit, GET /cargo/:cargo_id and compare to what was sent",
+							"",
+							"var editSent = pm.variables.set(\"cargoEdit\");",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"",
+							"",
+							"",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        ",
+							"        pm.test(\"PUT /cargo:cargo_id - Edit worked correctly\", function () { ",
+							"            var match = true;",
+							"            for (var prop in editSent){ //Iterate over properties in edit sent and confirm they all match",
+							"                if(editSent.prop != res.prop){",
+							"                    match = false;",
+							"                }",
+							"            }",
+							"            pm.expect(match).to.equal(true); ",
+							"        });",
+							"    }",
+							"});",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": " {\n        \"weight\": 10,\n        \"delivery_date\": \"08/08/2018\",\n        \"content\": \"Stuff\"\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo/{{new_cargo_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo",
+						"{{new_cargo_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Load Cargo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ff1e520a-65c5-403f-996e-ad1951b7ed6f",
+						"exec": [
+							"//Overview of load cargo test",
+							"//  Load cargo in request",
+							"//  GET ship/:ship_id and GET cargo/:cargo_id",
+							"//  Check that cargo.carrier == ship.name && ship.cargo contains cargo.id",
+							"",
+							"",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"var shipReturned;  //Holds GET /ships/:ship_id",
+							"var cargoReturned; //Holds GET /cargo/:cargo_id",
+							"",
+							"// Confirm 403 Error when trying to load cargo that's already placed",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/' + shipID + '/cargo/' + cargoID,",
+							"    method: 'PUT',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 403 error for cargo not found",
+							"        ",
+							"          pm.test(\"LOAD CARGO - Can't Load cargo that's already loaded\", function () { ",
+							"                    pm.expect(res.code).to.equal(403); //Check that cursor request was valid request",
+							"                });",
+							"    }",
+							"});",
+							"",
+							"//GET the ship",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        shipReturned = res.json();",
+							"        console.log(\"SHIP\");",
+							"        console.log(shipReturned);",
+							"        ",
+							"        // GET the cargo",
+							"        pm.sendRequest({",
+							"            url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res2) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"              ",
+							"                cargoReturned = res2.json();",
+							"                  console.log(\"CARGO\");",
+							"                console.log(cargoReturned);",
+							"                 pm.test(\"LOAD CARGO - Ship contains cargo\", function () { ",
+							"                    pm.expect(shipReturned.cargo[0].id).to.equal(cargoReturned.id); ",
+							"                });",
+							"                ",
+							"                  pm.test(\"LOAD CARGO - Cargo carrier is ship\", function () { ",
+							"                    pm.expect(cargoReturned.carrier.id).to.equal(shipReturned.id); ",
+							"                });",
+							"                ",
+							"            }",
+							"        });",
+							"",
+							"    }",
+							"});",
+							"",
+							"       ",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{new_ship_id}}/cargo/{{new_cargo_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}",
+						"cargo",
+						"{{new_cargo_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Unload Cargo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "18f9ae0c-ce1e-41af-8d5d-3c4333b49b18",
+						"exec": [
+							"//Overview of unload cargo test",
+							"//  unload cargo in request",
+							"//  GET ship/:ship_id and GET cargo/:cargo_id",
+							"//  Check that cargo.carrier == empty && ship.cargo doesn't contain cargo.id",
+							"",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"var shipReturned;  //Holds GET /ships/:ship_id",
+							"var cargoReturned; //Holds GET /cargo/:cargo_id",
+							"",
+							"// Confirm 403 Error when trying to unload cargo that's already placed",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/' + shipID + '/cargo/23',",
+							"    method: 'DELETE',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 403 error for cargo not found",
+							"        ",
+							"          pm.test(\"UNLOAD CARGO - Can't unload cargo that doesn't exist\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"    }",
+							"});",
+							"",
+							"//GET the ship",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        shipReturned = res.json();",
+							"        console.log(\"SHIP\");",
+							"        console.log(shipReturned);",
+							"        ",
+							"        // GET the cargo",
+							"        pm.sendRequest({",
+							"            url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res2) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"              ",
+							"                cargoReturned = res2.json();",
+							"                  console.log(\"CARGO\");",
+							"                console.log(cargoReturned);",
+							"                 pm.test(\"UNLOAD CARGO - Ship DOESN'T contains cargo\", function () { ",
+							"                    pm.expect(shipReturned.cargo.length).to.equal(0); ",
+							"                });",
+							"                ",
+							"                  pm.test(\"UNLOAD CARGO - Cargo has no carrier\", function () { ",
+							"                    pm.expect(cargoReturned.carrier).to.equal(\"\"); ",
+							"                });",
+							"                ",
+							"            }",
+							"        });",
+							"",
+							"    }",
+							"});",
+							"",
+							"       ",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{new_ship_id}}/cargo/{{new_cargo_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}",
+						"cargo",
+						"{{new_cargo_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Ship",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "87b2fec0-6e3f-4f7d-b21e-94eae7cc85a7",
+						"exec": [
+							"//Overview of DELETE /ships/:ship_id test",
+							"//  Load cargo of new_cargo_id onto new_ship_id",
+							"//  Delete new_ship_id, do GET /ships/:ship_id on deleted ship, confirm 404 not found",
+							"//  Confirm that cargo no longer has ship as carrier",
+							"",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"",
+							"//Load ship with cargo before deletion",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID + '/cargo/' + cargoID,",
+							"    method: 'PUT',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } ",
+							"});",
+							"",
+							"// Confirm 404 Error when trying to load cargo that's already placed",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/k',",
+							"    method: 'DELETE',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 403 error for cargo not found",
+							"        ",
+							"          pm.test(\"DELETE /ships - Can't delete ship that doesn't exist\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "35dbb688-84ff-44af-a3ab-bee42e3f1b6f",
+						"exec": [
+							"//Overview of DELETE /ships/:ship_id test",
+							"//  Delete ship created in 'New Ship', do GET /ships/:ship_id on deleted ship, confirm 404 not found",
+							"//  Confirm no carrier associated with cargo",
+							"",
+							"var shipID = pm.globals.get(\"new_ship_id\");",
+							"var cargoID = pm.globals.get(\"new_cargo_id\");",
+							"",
+							"//Check that deleted ship is no longer found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        ",
+							"        pm.test(\"DELETE /ships/:ship_id - Item doesn't exist (404 ERROR) after delete\", function () { ",
+							"            pm.expect(res.code).to.equal(404); ",
+							"        });",
+							"        ",
+							"        //Confirm that cargo has no carrier associated",
+							"        pm.sendRequest({",
+							"            url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"            method: 'GET',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } else {",
+							"                ",
+							"                pm.test(\"DELETE /ships/:ship_id - Cargo no longer has deleted ship as carrier\", function () { ",
+							"        ",
+							"                    var cargo = res.json();",
+							"                    console.log(\"DELETE - CARGO NO MO SHIP\")",
+							"                    console.log(cargo);",
+							"                    pm.expect(cargo.carrier).to.equal(\"\"); ",
+							"                });",
+							"                ",
+							"                //DELETE  CARGO ID (CLEANUP FOR TEST)",
+							"                pm.sendRequest({",
+							"                    url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"                    method: 'DELETE',",
+							"                    header: 'cache-control: no-cache'",
+							"                }, function (err, res) {",
+							"                    if (err){",
+							"                        console.log(\"ERROR DELETING SECOND_CARGO_ID\");",
+							"                    } ",
+							"                });",
+							"            }",
+							"        });",
+							"        ",
+							"    }",
+							"});",
+							"",
+							"",
+							"",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{new_ship_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{new_ship_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Cargo",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "87b2fec0-6e3f-4f7d-b21e-94eae7cc85a7",
+						"exec": [
+							"//Overview of DELETE /cargo/:cargo_id test",
+							"//  Load cargo of new_cargo_id onto second_ship_id (cargo from 'new cargo' and ship from 'get ships')",
+							"//  Delete new_cargo_id, do GET /cargo/:cargo_id on deleted cargo, confirm 404 not found",
+							"//  Confirm that ship no longer carries cargo",
+							"",
+							"var shipID = pm.globals.get(\"second_ship_id\");",
+							"var cargoID = pm.globals.get(\"second_cargo_id\");",
+							"",
+							"//Load ship with cargo before deletion",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID + '/cargo/' + cargoID,",
+							"    method: 'PUT',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(\"ERROR ADDING NEWCARGO TO SECOND SHIP\");",
+							"    } ",
+							"});",
+							"",
+							"// Confirm 404 Error when trying to load cargo that's already placed",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/k',",
+							"    method: 'DELETE',",
+							"    header: 'Content-Type:application/json'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        //Confirm 403 error for cargo not found",
+							"        ",
+							"          pm.test(\"DELETE /cargo - Can't delete cargo that doesn't exist\", function () { ",
+							"                    pm.expect(res.code).to.equal(404); //Check that cursor request was valid request",
+							"                });",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "35dbb688-84ff-44af-a3ab-bee42e3f1b6f",
+						"exec": [
+							"//Overview of DELETE /cargo/:cargo_id test",
+							"//  Delete cargo created in 'New cargo', do GET /cargo/:cargo_id on deleted cargo, confirm 404 not found",
+							"//  Confirm no cargo associated with ship",
+							"",
+							"var shipID = pm.globals.get(\"second_ship_id\");",
+							"var cargoID = pm.globals.get(\"second_cargo_id\");",
+							"",
+							"//Check that deleted cargo is no longer found",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/cargo/'+ cargoID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        ",
+							"        pm.test(\"DELETE /cargo/:cargo_id - Item doesn't exist (404 ERROR) after delete\", function () { ",
+							"            pm.expect(res.code).to.equal(404); ",
+							"        });",
+							"    }",
+							"});",
+							"",
+							"//Confirm that ship has no cargo associated",
+							"pm.sendRequest({",
+							"    url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"    method: 'GET',",
+							"    header: 'cache-control: no-cache'",
+							"}, function (err, res) {",
+							"    if (err){",
+							"        console.log(err);",
+							"    } else {",
+							"        ",
+							"        pm.test(\"DELETE /cargo/:cargo_id - Ship no longer contains cargo deleted\", function () { ",
+							"            var ship = res.json();",
+							"            pm.expect(ship.cargo.length).to.equal(0); ",
+							"        });",
+							"        ",
+							"        ",
+							"        //DELETE SECOND SHIP ID (CLEANUP FROM GET SHIPS())",
+							"        pm.sendRequest({",
+							"            url: 'https://mitcheza-api-2.appspot.com/ships/'+ shipID,",
+							"            method: 'DELETE',",
+							"            header: 'cache-control: no-cache'",
+							"        }, function (err, res) {",
+							"            if (err){",
+							"                console.log(err);",
+							"            } ",
+							"        });",
+							"    }",
+							"});",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo/{{second_cargo_id}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo",
+						"{{second_cargo_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Ship - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ff221946-b0ba-4fa6-aed2-6d53de2f046c",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "94808244-fa76-4fcc-b1ff-0f75fd80868b",
+						"exec": [
+							"var shipID = pm.response.json().id;",
+							"pm.globals.set(\"extraShip\", shipID);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"sample ship\",\n\t\"length\": 23,\n\t\"type\": \"xsdfg\"\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Cargo - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ff221946-b0ba-4fa6-aed2-6d53de2f046c",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "94808244-fa76-4fcc-b1ff-0f75fd80868b",
+						"exec": [
+							"var cargoID = pm.response.json().id;",
+							"pm.globals.set(\"extraCargo\", cargoID);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"weight\": 645,\n\t\"content\": \"USPS Media Mail\",\n\t\"delivery_date\": \"06/30/2063\"\n}"
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Ships - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "05674fd1-b871-4a8c-af30-f12d9e0fe2b4",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "5ebb7903-9ccb-4900-b643-fda0c168d3f0",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get ALL Cargo - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "05674fd1-b871-4a8c-af30-f12d9e0fe2b4",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "5ebb7903-9ccb-4900-b643-fda0c168d3f0",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Ship - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "87b2fec0-6e3f-4f7d-b21e-94eae7cc85a7",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "35dbb688-84ff-44af-a3ab-bee42e3f1b6f",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/ships/{{extraShip}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"ships",
+						"{{extraShip}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Cargo - NO TESTS",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "87b2fec0-6e3f-4f7d-b21e-94eae7cc85a7",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "35dbb688-84ff-44af-a3ab-bee42e3f1b6f",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "https://mitcheza-api-2.appspot.com/cargo/{{extraCargo}}",
+					"protocol": "https",
+					"host": [
+						"mitcheza-api-2",
+						"appspot",
+						"com"
+					],
+					"path": [
+						"cargo",
+						"{{extraCargo}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
