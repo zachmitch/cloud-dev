@@ -1,5 +1,5 @@
 /* Author:  Zach Mitchell, mitcheza@oregonstate.edu
-   CS493, FALL 2018 - FINAL PROJECT, ART COLLECTING API
+   CS493, FALL 2018 - FINAL PROJECT, ART MUSEUM COLLECTION API
    11/28/2018
 */
 
@@ -16,6 +16,11 @@ const datastore = new Datastore({projectId:projectId});
 const router = express.Router();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended:true}));
+
+const request = require('request');
+
+const jwt = require('express-jwt');
+const jwksRSA = require('jwks-rsa');
 
 //Kinds in the Datastore
 const WORK = "Artwork";
@@ -45,11 +50,9 @@ function addIDandSelfLink(req, item){
 
 //Return 406 error if request doesn't accept json
 function acceptsJSON(req, res, next){
-  let reqAccepts = req.get('accept');
-  console.log(reqAccepts);
-  let acceptable = 'application/json';
+  let reqAccepts = req.get('accept');    //Get what user accepts
+  let acceptable = 'application/json';    // and compare to what is acceptable
   let acceptableRequest = (reqAccepts === acceptable);
-  console.log(acceptableRequest);
   if(!acceptableRequest){
     res.status(406).send('Must explicity accept "application/json"');
   } else {
@@ -93,10 +96,53 @@ async function clearArtistWorks(req, artist){
   //Cycle through each artwork and remove artist name from work
   for(var j = 0; j < workSz; j++){
     await get_work(req, artist.works[j].id).then((work)=>{
-      edit_work(work.id, work.name, work.year, work.location, "");
+      edit_work(work.id, work.name, work.year, work.location, "", req.user.name);
     });
   }
 }
+
+//Check jwt
+const checkJwt = jwt({
+    secret: jwksRSA.expressJwtSecret({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri: `https://mitcheza.auth0.com/.well-known/jwks.json`
+    }),
+    // Validate the audience and the issuer.
+    issuer: `https://mitcheza.auth0.com/`,
+    algorithms: ['RS256']
+  });
+
+
+//Get Access token
+async function getAccessToken(accTok){
+
+  var options = { method: 'POST',
+  url: 'https://mitcheza.auth0.com/oauth/token',
+  headers: { 'content-type': 'application/json' },
+  body:
+   { grant_type: 'client_credentials',
+     client_id: 'xR5lnnDhigcz16lOeZomfJk0vw5Rhfap',
+     client_secret: '2es-g-acKHw8rNrbujWV3Xl5FPsWQEy4ygWAyt50F1fY1Ua-DX1pewtF6IWenHyT',
+     audience: 'https://mitcheza.auth0.com/api/v2/' },
+  json: true };
+
+
+  return new Promise(resolve =>{
+
+
+    request(options, function (error, response, body) {
+      resolve(body);
+   })
+ }).then(val =>{
+   accTok = val;
+   return accTok;
+ });
+
+
+}
+
 
 /*--------End Helper functions ---------------------*/
 
@@ -118,8 +164,6 @@ function get_works(req){
           results.works = entities[0];
 
           //Add next if necessary
-          console.log("CURSOR");
-          console.log(entities[1]);
           if(entities[1].moreResults !== Datastore.NO_MORE_RESULTS){
             results.next = "https://" + req.get("host") + "/works?cursor=" + entities[1].endCursor;
           }
@@ -155,9 +199,9 @@ function get_work(req, id){
 }
 
 //Add a new artwork
-function new_work(name, year, location){
+function new_work(name, year, location, owner){
         var key = datastore.key(WORK);
-        const new_art = { "name": name, "year": year, "location": location, "artist":""};
+        const new_art = { "name": name, "year": year, "location": location, "artist":"", "owner": owner};
         return datastore.save({"key":key, "data":new_art}).then(() => {
           return key;
 
@@ -169,11 +213,11 @@ function new_work(name, year, location){
 
 
 // Edit an artwork
-function edit_work(id, name, year, location, artist){
+function edit_work(id, name, year, location, artist, owner){
 
         const key = datastore.key([WORK, parseInt(id,10)]);
 
-        const work = {"name": name, "year": year, "location": location, "artist": artist};
+        const work = {"name": name, "year": year, "location": location, "artist": artist, "owner": owner};
 
         console.log("returning: ");
         console.log("datastore.save()");
@@ -314,7 +358,7 @@ function delete_artist(id){
 
 /* ------------- Begin ARTWORK Controller Functions ------------- */
 //Get all artworks
-router.get('/works', function(req, res){
+router.get('/works', checkJwt,function(req, res){
 
             return get_works(req)  // Get all works
             .then( (works) => {
@@ -324,12 +368,17 @@ router.get('/works', function(req, res){
 });
 
 //Get a single artwork
-router.get('/works/:id', function(req, res){
+router.get('/works/:id', checkJwt,function(req, res){
             var id = req.params.id;
             var work = get_work(req, id)
             .then( (work) => {
                 if(work){    //If exists, send back the goodies
-                    res.status(200).json(work);
+                    //Unauthorized if they don't match
+                    if(work.owner !== req.user.name){
+                      res.status(403).end();
+                    } else{
+                      res.status(200).json(work);
+                    }
                 } else {
                   res.status(404).end();   //Send error if not found
                 }
@@ -337,7 +386,7 @@ router.get('/works/:id', function(req, res){
 });
 
 // Add a new artwork
-router.post('/works', function(req, res){
+router.post('/works', checkJwt, function(req, res){
             //If user didn't fill out all properties
             if(typeof (req.body.name) != 'string' ||
                typeof (req.body.year) != 'number' ||
@@ -346,7 +395,7 @@ router.post('/works', function(req, res){
               res.status(400).send("ERROR.  Confirm all parameters are initialized correctly.").end()
             } else {
               //All properties initialized, add to datastore
-               return new_work(req.body.name, req.body.year, req.body.location)
+               return new_work(req.body.name, req.body.year, req.body.location, req.user.name)
                .then( key => {res.status(201).send('{ "id": ' + '"' + key.id + '" }')} );
             }
 });
@@ -354,7 +403,7 @@ router.post('/works', function(req, res){
 
 
 // Edit an artwork
-router.put('/works/:id', function(req, res){
+router.put('/works/:id', checkJwt,function(req, res){
             //If user didn't fill out all properties
             if(typeof (req.body.name) != 'string' ||
                typeof (req.body.year) != 'number' ||
@@ -366,9 +415,16 @@ router.put('/works/:id', function(req, res){
               // See if artwork exists in datastore to edit
               return get_work(req, req.params.id).then( workExists =>{
                 if(workExists){
-                  //Edit work, then send success message
-                  edit_work(req.params.id, req.body.name, req.body.year, req.body.location, workExists.artist)
-                  .then(res.status(200).end());
+
+                  if(workExists.owner !== req.user.name){
+                    res.status(403).end();
+                  } else{
+                    //Edit work, then send success message
+                    edit_work(req.params.id, req.body.name, req.body.year, req.body.location, workExists.artist, req.user.name)
+                    .then(res.status(200).end());
+                  }
+
+
 
                 } else {
                   //work doesn't exist
@@ -386,7 +442,7 @@ router.put('/works', function(req, res){
 
 
 //Delete artwork
-router.delete('/works/:id', function(req, res){
+router.delete('/works/:id', checkJwt, function(req, res){
             //See if artwork exists
             console.log("**************DELETING A WORK*************************");
             return get_work(req,req.params.id).then( workExists => {
@@ -394,19 +450,21 @@ router.delete('/works/:id', function(req, res){
               //if so clear from artist's set of works
               if(workExists){
 
-                //Clear it from artist's works
-                clearWork(req, workExists).then(()=>{
+                if(workExists.owner !== req.user.name){
+                  res.status(403).end();
+                }else {
+                  //Clear it from artist's works
+                  clearWork(req, workExists).then(()=>{
 
-                  delete_work(req.params.id).then(()=>{
-                    console.log("SENDING 204, SUCCESSFUL DELETE");
+                    delete_work(req.params.id).then(()=>{
+                      console.log("SENDING 204, SUCCESSFUL DELETE");
 
-                      res.status(204).end();
+                        res.status(204).end();
+
+                    });
 
                   });
-
-                });
-
-
+                }
 
               } else {
                 res.status(404).end();  //Ship not found
@@ -536,7 +594,7 @@ router.delete('/artists', function(req, res){
 /* ------------- Begin ARTIST / Artwork relationship Controller Functions ------------- */
 
 //Assign Artwork to an Artist
-router.put('/artists/:artist_id/works/:work_id', function(req, res){
+router.put('/artists/:artist_id/works/:work_id', checkJwt,function(req, res){
 
       var artist; //Holds artist info, if it exists
 
@@ -556,29 +614,33 @@ router.put('/artists/:artist_id/works/:work_id', function(req, res){
                   //  if work is not attached to an artist, assign it, otherwise send forbidden 403
                   if(workExists.artist === ""){
 
-                        var a = {};
-                        a.name = artist.name;
-                        a.id = artist.id;
-                        a.self = artist.self;
+                        if(workExists.owner !== req.user.name){
+                          res.status(403).end();
+                        } else {
+                          var a = {};
+                          a.name = artist.name;
+                          a.id = artist.id;
+                          a.self = artist.self;
 
-                        //Assign artist to work
-                          return edit_work(workExists.id, workExists.name,
-                            workExists.year, workExists.location, a).then( nothing =>{
-                             //Add work to artist
-                             var artwork = {};
-                             artwork.name = workExists.name;
-                             artwork.id = workExists.id;
-                             artwork.self = workExists.self;
-                             artist.works.push(artwork);
+                          //Assign artist to work
+                            return edit_work(workExists.id, workExists.name,
+                              workExists.year, workExists.location, a, req.user.name).then( nothing =>{
+                               //Add work to artist
+                               var artwork = {};
+                               artwork.name = workExists.name;
+                               artwork.id = workExists.id;
+                               artwork.self = workExists.self;
+                               artist.works.push(artwork);
 
-                             //Edit artist
-                             return edit_artist(artist.id, artist.name, artist.nationality,
-                               artist.style, artist.works);
+                               //Edit artist
+                               return edit_artist(artist.id, artist.name, artist.nationality,
+                                 artist.style, artist.works);
 
-                       }).then(()=>{
+                         }).then(()=>{
 
-                          console.log("SENDING LOADED SUCCESS 200")
-                         res.status(200).end()}); //Send success
+                            console.log("SENDING LOADED SUCCESS 200")
+                           res.status(200).end()}); //Send success
+                        }
 
                   } else { // Artwork already assigned to an artist, forbidden
                     res.status(403).end();
@@ -600,7 +662,7 @@ router.put('/artists/:artist_id/works/:work_id', function(req, res){
 
 
 //Remove artwork from artist
-router.delete('/artists/:artist_id/works/:work_id',  function(req, res){
+router.delete('/artists/:artist_id/works/:work_id', checkJwt, function(req, res){
     //Confirm that both artist/artwork exist
     var artist; //Holds artist info, if it exists
     console.log("ENTERING UNLOAD WORK");
@@ -620,31 +682,33 @@ router.delete('/artists/:artist_id/works/:work_id',  function(req, res){
 
 
                   //Confirm that artist we are removing matches artwork.artist, else bad request
-                  if(workExists.artist !== artist.name){
+                  if(workExists.artist.id !== artist.id){
+                    console.log("ARtists name");
                     res.status(400).end(); //Bad request
+                  } else if (workExists.owner !== req.user.name){
+                     res.status(403).end(); // Forbidden
+                  }  else {
+                    workExists.artist = "";
+
+                    //Confirm that artist made that work
+                    let didCreate = false; // Bool to see if artist created work
+                    for( var i = 0; i < artist.works.length; i++){
+                      console.log(artist.works[i].name);
+                       if ( artist.works[i].name === workExists.name) {
+                         artist.works.splice(i, 1);
+                         didCreate = true;
+                       }
+                    }
+
+                    if(!didCreate){
+                      res.status(400).end(); //Bad request, artist didnt make that
+                    }
+
+                    //Make edits to work and artist
+                    edit_artist(artist.id, artist.name, artist.nationality, artist.style, artist.works)
+                    .then(edit_work(workExists.id, workExists.name, workExists.year, workExists.location, workExists.artist, req.user.name))
+                    .then(res.status(200).end());
                   }
-
-                  workExists.artist = "";
-
-                  //Confirm that artist made that work
-                  let didCreate = false; // Bool to see if artist created work
-                  for( var i = 0; i < artist.works.length; i++){
-                    console.log(artist.works[i].name);
-                     if ( artist.works[i].name === workExists.name) {
-                       artist.works.splice(i, 1);
-                       didCreate = true;
-                     }
-                  }
-
-                  if(!didCreate){
-                    res.status(400).end(); //Bad request, artist didnt make that
-                  }
-
-                  //Make edits to work and artist
-                  edit_artist(artist.id, artist.name, artist.nationality, artist.style, artist.works)
-                  .then(edit_work(workExists.id, workExists.name, workExists.year, workExists.location, workExists.artist))
-                  .then(res.status(200).end());
-
 
               } else { // Artwork doesn't exist
                 res.status(404).end();
@@ -657,3 +721,74 @@ router.delete('/artists/:artist_id/works/:work_id',  function(req, res){
 
 });
 /* ------------- End ARTIST / Artwork relationship Controller Functions ------------- */
+
+/* ------------- BEGIN User functions ------------- */
+
+//Login
+router.post('/login', function(req, res){
+  const username = req.body.username;
+  const password = req.body.password;
+  var options = { method: 'POST',
+    url: 'https://mitcheza.auth0.com/oauth/token',
+    headers: { 'content-type': 'application/json' },
+    body:
+     { scope: 'openid',
+       grant_type: 'password',
+       username: username,
+       password: password,
+       client_id: 'mx0zGg07VIRXTFVLPu2LCJcfXgX5Bng6',
+       client_secret: 'p308vHYZC1bc2KqgQcQbgNejYVgD2JZZ923Lc058XulP8vwmcmba9JEM75O1FXst' },
+    json: true };
+    request(options, (error, response, body) => {
+        if (error){
+            res.status(500).send(error);
+        } else {
+            res.send(body);
+        }
+    });
+
+});
+
+// New User
+router.post('/newuser', async function(req, res){
+  const username = req.body.username;
+  const password = req.body.password;
+  var accTok;
+
+  console.log("username: " + username);
+  console.log("password: " + password);
+
+
+    //Get access token so we are allowed to create new account
+    await getAccessToken(accTok)
+    .then((accessToken)=>{
+
+      //Bearer token
+      var btoke = "Bearer " + accessToken.access_token;
+
+      //Setup call with token to create a new account
+      var options = {
+
+      method: 'POST',
+      url: 'https://mitcheza.auth0.com/api/v2/users',
+      headers: { authorization: btoke,
+        'content-type': 'application/json' },
+      body:
+      {
+        email: username,
+        password: password,
+        connection: "Username-Password-Authentication"
+      },
+      json: true };
+
+      request(options, function (error, response, body) {
+
+        res.status(201).send(username + " account created!");
+
+      });
+    });
+
+});
+
+
+/* ------------- END User function ------------- */

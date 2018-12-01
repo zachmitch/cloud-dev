@@ -73,7 +73,7 @@ async function unloadAllCargo(cargo){
     console.log("UNLOADING CARGO ********************** " + cargo[i].id);
     return await get_single_cargo(cargo[i].id).then((cargoUnit)=>{
       console.log("UNLOADING CARGO: ********************** " + i);
-       await put_cargo(cargoUnit.id, cargoUnit.weight, "", cargoUnit.content, cargoUnit.delivery_date);
+       put_cargo(cargoUnit.id, cargoUnit.weight, "", cargoUnit.content, cargoUnit.delivery_date);
     });
   }
   return true;
